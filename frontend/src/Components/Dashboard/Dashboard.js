@@ -8,11 +8,13 @@ import Chart from '../Chart/Chart';
 
 function Dashboard() {
     const {totalExpenses,incomes, expenses, totalIncome, totalBalance, getIncomes, getExpenses } = useGlobalContext()
+    const incomeAmounts = incomes.map((item) => item.amount)
+    const expenseAmounts = expenses.map((item) => item.amount)
 
     useEffect(() => {
         getIncomes()
         getExpenses()
-    }, [])
+    }, [getExpenses, getIncomes])
 
     return (
         <DashboardStyled>
@@ -47,19 +49,19 @@ function Dashboard() {
                         <h2 className="salary-title">Min <span>Salary</span>Max</h2>
                         <div className="salary-item">
                             <p>
-                                ${Math.min(...incomes.map(item => item.amount))}
+                                ${incomeAmounts.length ? Math.min(...incomeAmounts) : 0}
                             </p>
                             <p>
-                                ${Math.max(...incomes.map(item => item.amount))}
+                                ${incomeAmounts.length ? Math.max(...incomeAmounts) : 0}
                             </p>
                         </div>
                         <h2 className="salary-title">Min <span>Expense</span>Max</h2>
                         <div className="salary-item">
                             <p>
-                                ${Math.min(...expenses.map(item => item.amount))}
+                                ${expenseAmounts.length ? Math.min(...expenseAmounts) : 0}
                             </p>
                             <p>
-                                ${Math.max(...expenses.map(item => item.amount))}
+                                ${expenseAmounts.length ? Math.max(...expenseAmounts) : 0}
                             </p>
                         </div>
                     </div>

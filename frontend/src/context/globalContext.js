@@ -1,4 +1,4 @@
-import React, { useContext, useState } from "react"
+import React, { useCallback, useContext, useMemo, useState } from "react"
 import axios from 'axios'
 
 
@@ -9,6 +9,10 @@ const BASE_URL = `${API_BASE_URL}/`;
 
 const GlobalContext = React.createContext()
 
+const getErrorMessage = (error) => {
+    return error?.response?.data?.message || 'Something went wrong'
+}
+
 export const GlobalProvider = ({children}) => {
 
     const [incomes, setIncomes] = useState([])
@@ -16,96 +20,118 @@ export const GlobalProvider = ({children}) => {
     const [error, setError] = useState(null)
 
     //calculate incomes
-    const addIncome = async (income) => {
-        const response = await axios.post(`${BASE_URL}add-income`, income)
-            .catch((err) =>{
-                setError(err.response.data.message)
-            })
-        getIncomes()
-    }
+    const getIncomes = useCallback(async () => {
+        try {
+            const response = await axios.get(`${BASE_URL}get-incomes`)
+            setIncomes(response.data)
+        } catch (error) {
+            setError(getErrorMessage(error))
+        }
+    }, [])
 
-    const getIncomes = async () => {
-        const response = await axios.get(`${BASE_URL}get-incomes`)
-        setIncomes(response.data)
-        console.log(response.data)
-    }
+    const addIncome = useCallback(async (income) => {
+        try {
+            await axios.post(`${BASE_URL}add-income`, income)
+            await getIncomes()
+        } catch (error) {
+            setError(getErrorMessage(error))
+        }
+    }, [getIncomes])
 
-    const deleteIncome = async (id) => {
-        const res  = await axios.delete(`${BASE_URL}delete-income/${id}`)
-        getIncomes()
-    }
+    const deleteIncome = useCallback(async (id) => {
+        try {
+            await axios.delete(`${BASE_URL}delete-income/${id}`)
+            await getIncomes()
+        } catch (error) {
+            setError(getErrorMessage(error))
+        }
+    }, [getIncomes])
 
-    const totalIncome = () => {
-        let totalIncome = 0;
-        incomes.forEach((income) =>{
-            totalIncome = totalIncome + income.amount
-        })
-
-        return totalIncome;
-    }
+    const totalIncome = useCallback(() => {
+        return incomes.reduce((total, income) => total + income.amount, 0)
+    }, [incomes])
 
 
     //calculate incomes
-    const addExpense = async (income) => {
-        const response = await axios.post(`${BASE_URL}add-expense`, income)
-            .catch((err) =>{
-                setError(err.response.data.message)
-            })
-        getExpenses()
-    }
+    const getExpenses = useCallback(async () => {
+        try {
+            const response = await axios.get(`${BASE_URL}get-expenses`)
+            setExpenses(response.data)
+        } catch (error) {
+            setError(getErrorMessage(error))
+        }
+    }, [])
 
-    const getExpenses = async () => {
-        const response = await axios.get(`${BASE_URL}get-expenses`)
-        setExpenses(response.data)
-        console.log(response.data)
-    }
+    const addExpense = useCallback(async (expense) => {
+        try {
+            await axios.post(`${BASE_URL}add-expense`, expense)
+            await getExpenses()
+        } catch (error) {
+            setError(getErrorMessage(error))
+        }
+    }, [getExpenses])
 
-    const deleteExpense = async (id) => {
-        const res  = await axios.delete(`${BASE_URL}delete-expense/${id}`)
-        getExpenses()
-    }
+    const deleteExpense = useCallback(async (id) => {
+        try {
+            await axios.delete(`${BASE_URL}delete-expense/${id}`)
+            await getExpenses()
+        } catch (error) {
+            setError(getErrorMessage(error))
+        }
+    }, [getExpenses])
 
-    const totalExpenses = () => {
-        let totalIncome = 0;
-        expenses.forEach((income) =>{
-            totalIncome = totalIncome + income.amount
-        })
-
-        return totalIncome;
-    }
+    const totalExpenses = useCallback(() => {
+        return expenses.reduce((total, expense) => total + expense.amount, 0)
+    }, [expenses])
 
 
-    const totalBalance = () => {
+    const totalBalance = useCallback(() => {
         return totalIncome() - totalExpenses()
-    }
+    }, [totalExpenses, totalIncome])
 
-    const transactionHistory = () => {
+    const transactionHistory = useCallback(() => {
         const history = [...incomes, ...expenses]
         history.sort((a, b) => {
             return new Date(b.createdAt) - new Date(a.createdAt)
         })
 
         return history.slice(0, 3)
-    }
+    }, [expenses, incomes])
+
+    const contextValue = useMemo(() => ({
+        addIncome,
+        getIncomes,
+        incomes,
+        deleteIncome,
+        expenses,
+        totalIncome,
+        addExpense,
+        getExpenses,
+        deleteExpense,
+        totalExpenses,
+        totalBalance,
+        transactionHistory,
+        error,
+        setError
+    }), [
+        addExpense,
+        addIncome,
+        deleteExpense,
+        deleteIncome,
+        error,
+        expenses,
+        getExpenses,
+        getIncomes,
+        incomes,
+        totalBalance,
+        totalExpenses,
+        totalIncome,
+        transactionHistory
+    ])
 
 
     return (
-        <GlobalContext.Provider value={{
-            addIncome,
-            getIncomes,
-            incomes,
-            deleteIncome,
-            expenses,
-            totalIncome,
-            addExpense,
-            getExpenses,
-            deleteExpense,
-            totalExpenses,
-            totalBalance,
-            transactionHistory,
-            error,
-            setError
-        }}>
+        <GlobalContext.Provider value={contextValue}>
             {children}
         </GlobalContext.Provider>
     )
